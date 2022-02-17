@@ -64,6 +64,7 @@ for (k in 1:N){ # loop through files
 ### Data edits ###
 # small fixes
 studies = mutate(studies, 
+                 submitdate = as.Date(submitdate, origin='1970-01-01'),
                  samplesize_target = as.numeric(samplesize_target),
                  samplesize_actual = as.numeric(samplesize_actual)
 ) 
