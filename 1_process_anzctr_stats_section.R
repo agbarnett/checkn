@@ -1,7 +1,7 @@
 # 1_process_anzctr_stats_section.R
 # process the text in the stats section
-# copied from Nicole's code https://github.com/agbarnett/stats_section/blob/master/code/anzctr/2_process_anzctr_stats_section.R
-# February 2022
+# adapted from Nicole's code https://github.com/agbarnett/stats_section/blob/master/code/anzctr/2_process_anzctr_stats_section.R
+# March 2022
 
 library(tidyverse)
 library(textclean)
@@ -67,9 +67,10 @@ stats_section = stats_section %>% mutate(text_data_clean = gsub("(?<=\\b\\d{2}),
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\[\\S{1,3}\\]", replacement = ""))
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = 'ß', replacement = 'beta')) # German eszett character 
 
+## turned this off - March 2022
 #remove () including text within brackets "\\s*\\([^\\)]+\\)"
 #option to keep text inside brackets is "[()]"
-stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "[()]", " ")) # AGB, changed replace to space
+#stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "[()]", " ")) # AGB, changed replace to space
 
 # remove carriage tabs and tidy text due to line breaks
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\t", replacement = " "))
@@ -174,7 +175,8 @@ stats_section = stats_section %>% mutate(text_data_clean = replace_non_ascii(tex
 stats_section = stats_section %>% mutate(text_data_clean = replace_curly_quote(text_data_clean, replacement = " "))
 
 #remove punctuation except for a few key symbols
-stats_section$text_data_clean = strip(stats_section$text_data_clean, char.keep = c("~~", ".", "-",'=','<','>'), apostrophe.remove=T, digit.remove=F)
+punctuation_to_keep = c("~~", ".", "-", '=', '<', '>', ',', ';', '(', ')', '[', ']')
+stats_section$text_data_clean = strip(stats_section$text_data_clean, char.keep = punctuation_to_keep, apostrophe.remove=T, digit.remove=F)
 
 
 # 4. make common statistical terms and methods consistent

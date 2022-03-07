@@ -46,7 +46,7 @@ for (k in 1:N){ # loop through files
 
   # get email and name
   name = xml_data$contacts$contact$name
-  email = xml_data$contacts$contact$email  
+  email = ifelse(is.null(xml_data$contacts$contact$email), NA, xml_data$contacts$contact$email) 
 
   ## store data 
   frame = data.frame(number = number, 
@@ -74,4 +74,3 @@ table(duplicated(studies$number))
 
 # save
 save(studies, excluded, censor.date, file='data/Stats_Sections.RData')
-

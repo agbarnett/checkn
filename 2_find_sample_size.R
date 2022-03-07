@@ -14,7 +14,7 @@ N = nrow(studies)
 keywords = c('\\bpower\\b','sample size','\\balpha\\b','\\bbeta\\b','type.?i','type.?ii','type.?1','type.?2','type.?one','type.?two')
 keywords = paste(keywords, collapse='|')
 # key words for more complex sample size calculations
-complex = c('longitudinal', 'repeated.measure', 'spatial', 'simulation', 'equivalence')
+complex = c('longitudinal', 'repeated.measure', 'spatial', 'simulation', 'equivalence','non.?inferiority ')
 complex = paste(complex, collapse='|')
 
 # to do: also flag pilot studies that may not need a formal sample size
