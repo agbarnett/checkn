@@ -2,6 +2,7 @@
 # read statistical methods section from ANZCTR, adapted from stats_section repository
 # handy document: https://www.anzctr.org.au/docs/ANZCTR%20Data%20field%20explanation.pdf
 # data downloaded from https://www.anzctr.org.au/TrialSearch.aspx using empty search, then "download all to XML" button 
+# uses XML data
 # November 2021
 library(XML)
 library(stringr)
@@ -73,4 +74,4 @@ studies = mutate(studies,
 table(duplicated(studies$number))
 
 # save
-save(studies, excluded, censor.date, file='data/Stats_Sections.RData')
+save(studies, excluded, censor.date, file='data/0_Stats_Sections.RData')

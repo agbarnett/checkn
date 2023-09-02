@@ -1,0 +1,36 @@
+ has sample size 383945
+ 
+ # refinement, remove years?
+ 
+ 384002 
+ includes cut-off for 
+ also has per group sample size, so need to double n
+ 
+ 384753 is complex as it is AUC, but what word can be used to flag complex?
+ 
+ 383490
+ 'to detect an MCID of 9.3 points'
+ need to add mcid and `minimal clinically important difference`; done, not working
+ 
+ 383554
+ good one to check for calculation
+ 
+ 384658 
+ uses a numbered list, can we remove numbers? Look for lots of sentences that start with numbers. 
+ 
+ #
+ need to think about '[0-9] per group'
+
+#
+calculate the number of groups 
+ 
+ ## refinements to text processing
+# need to think about `x`, e.g., "10 x 4 sites pre phase" 
+# remove year in brackets from citations, try to remove all of citations? , e.g., `Newman, D. A. (2014)` and `Journal of Clinical Epidemiology, 60(12), 1234–1238` also `DOI`
+
+# strip out `objectives 1-4`?
+
+# for pilot: `inform the sample size required` and similar
+
+# fix this, 384730
+'standard deviation of the measurement is approx. 20.30' 

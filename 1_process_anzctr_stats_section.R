@@ -1,8 +1,7 @@
 # 1_process_anzctr_stats_section.R
 # process the text in the stats section
 # adapted from Nicole's code https://github.com/agbarnett/stats_section/blob/master/code/anzctr/2_process_anzctr_stats_section.R
-# March 2022
-
+# September 2023
 library(tidyverse)
 library(textclean)
 library(tm)
@@ -10,6 +9,8 @@ library(spelling)
 library(readxl)
 library(stringi)
 library(Unicode)
+source('99_functions.R')
+
 
 # Excel file from https://github.com/agbarnett/stats_section/blob/master/data/methods_dictionary.xlsx
 stat_terms_hyphen = read_xlsx('data/methods_dictionary.xlsx', sheet = 'hyphen_terms')
@@ -17,9 +18,14 @@ stat_terms_single = read_xlsx('data/methods_dictionary.xlsx', sheet = 'single_te
 stat_terms_model = read_xlsx('data/methods_dictionary.xlsx', sheet = 'models')
 other_terms = read_xlsx('data/methods_dictionary.xlsx', sheet = 'other')
 
+# which data to use
+data_sources = c('original','extra')
+data_source = data_sources[2]
+source('1_which_data.R')
+
 ### section 1 ###
-# get the data and process ready for the model
-load('data/Stats_Sections.RData') # from 0_read_data_stats_section.R
+# get the data and process
+load(in_data) # from 0_read_data_stats_section[_extra].R
 
 # count sections as null if they are virtually empty
 null_stats = c('NA', 'N/A', '\n  ', 'Nil', 'NIl ', 'None', 'None.', 'Pending') 
@@ -55,6 +61,15 @@ stats_section = studies %>% rename('text_data' = stats_section)
 stats_section = stats_section %>% mutate(text_data = enc2native(text_data))
 stats_section = stats_section %>% mutate(text_data_clean = tolower(text_data))
 
+# remove full-stop from common abbreviations that end with .
+abbreviations = c('approx','inc')
+for (a in abbreviations){
+  pattern = paste(' ', a, '\\.', sep='') # word with full-stop
+  replace = paste(' ', a, sep='') # keep leading space
+  stats_section = stats_section %>% 
+    mutate(text_data_clean = str_replace_all(text_data_clean, pattern = pattern, replacement = replace))
+}
+
 #0. remove commas from large numbers
 stats_section = stats_section %>% mutate(text_data_clean = gsub(",(?=\\d{3,})", "", text_data_clean, perl = TRUE)) # strip commas in numbers
 # assume a comma between two digits without a space should be a decimal point, e.g, (1,1), but not (11,11); using look-ahead and look-behind
@@ -66,6 +81,27 @@ stats_section = stats_section %>% mutate(text_data_clean = gsub("(?<=\\b\\d{2}),
 #stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "\\s*\\[\\d+\\]\\s*", ""))
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\[\\S{1,3}\\]", replacement = ""))
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = 'ß', replacement = 'beta')) # German eszett character 
+
+## remove references - had to loop
+### (could do more here, e.g, with DOI) # could remove any year in brackets
+# `et al` and a year within brackets
+for (k in 1:nrow(stats_section)){
+  # pattern is all text in round/square brackets
+  brackets = str_extract_all(stats_section$text_data_clean[k], pattern='\\(([^()]*)\\)|\\[([^()]*)\\]')[[1]]
+  if(length(brackets) == 0){next} # go to next if no brackets
+  for (j in 1:length(brackets)){
+    is_ref = str_detect(brackets[j], pattern = years) + # has year
+      str_detect(brackets[j], pattern = 'et.al') + # has et al
+      str_detect(brackets[j], pattern = 'doi') # has doi 
+    is_spss = str_detect(brackets[j], pattern = '\\bspss\\b') & 
+      str_detect(brackets[j], pattern = 'chicago')
+    if(is_ref >= 2 | is_spss == TRUE){ # remove reference or software; 2 out of 3 for reference
+      stats_section$text_data_clean[k] = str_remove(stats_section$text_data_clean[k], pattern = brackets[j])
+      print(brackets[j]) # display deleted reference
+    }
+  }
+}
+
 
 ## turned this off - March 2022
 #remove () including text within brackets "\\s*\\([^\\)]+\\)"
@@ -97,6 +133,18 @@ stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "\\s*(\\d+):(\\d+)\\s*", " \\1-to-\\2 "))
 }
 
+## remove version numbers with software packages - so they don't get confused with actual numbers
+# e.g., "stata 17.0", 'r 4.1.3', 'g-power 3.1.9.7', add optional 'version'
+software = c('stata','sas','g.?power','r','python','spss','graphpad.?prism','matlab','excel','jamovi','rstudio')
+numbers = '[0-9][0-9]?\\.?[0-9]?\\.?[0-9]?\\.?[0-9]?' # potential version numbers
+software = paste('(?<=\\b', software, '( version)?', ') ', rep(numbers, length(software)), sep='') # use look-ahead to only replace numbers
+software = paste(software, collapse = '|')
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern = software, replacement = ' x'))
+# test
+#test_text = 'software r 2 not software br 1 stata version 17.0 between two independent groups. (g-power 3.1.9.7) usability'
+#str_extract_all(test_text, pattern = software)
+#str_replace_all(test_text, pattern = software, replacement = ' x')
+
 # plus or minus 
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "\\s*(±)\\s*|\\s*(\\+/-+)\\s*", " plus-or-minus "))
 
@@ -108,6 +156,10 @@ stats_section = stats_section %>% mutate(text_data_clean = stri_escape_unicode(t
 
 all_words = stats_section %>% unnest(text_data_clean) %>% 
  mutate(y=strsplit(text_data_clean, ' ')) %>% pull(y) %>% unlist()
+
+# strip brackets and parentheses
+stats_section = stats_section %>% 
+  mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = '\\(|\\)|\\[|\\]', replacement = ' '))
 
 #find all unicode characters
 unicode_lookup = str_extract_all(all_words, pattern=regex("\\\\u\\w{4}")) %>% 
@@ -242,9 +294,15 @@ word_freq %>% filter(value %in% stat_terms_hyphen[['update']])
 word_freq %>% filter(value %in% other_terms[['term']])
 word_freq %>% filter(value %in% other_terms[['update']])
 
-
 # remove excess white space
-stats_section = stats_section %>% mutate(text_data_clean = replace_white(text_data_clean))
+stats_section = stats_section %>% 
+  mutate(text_data_clean = replace_white(text_data_clean),
+         text_data_clean = str_squish(text_data_clean))
+
+# replace `et al` (with any space but avoiding `ethal`) with `et al`
+et_al = 'et[^a-zA-Z0-9]al\\.?' # string to replace
+stats_section = stats_section %>% 
+  mutate(text_data_clean = str_replace_all(text_data_clean, et_al, 'et al'))
 
 #choose 100 records to check quality for data cleaning
 sample_studies = stats_section %>% distinct(number) %>% sample_n(., 100)
@@ -254,5 +312,5 @@ sample_data = stats_section %>% filter(number %in% sample_studies[['number']])
 stats_section = select(stats_section, -missing, -year, -date, -l_length, -length)
 
 # save
-write_rds(stats_section, file='data/stats_section_anzctr_cleaned.rds', compress = "xz", compression = 9L)
+write_rds(stats_section, file = rds_file, compress = "xz", compression = 9L)
 
