@@ -3,6 +3,7 @@
 # September 2023
 library(dplyr)
 library(stringr)
+source('99_patterns.R') # has key words, complex and pilot phrases
 
 # which data to use
 data_sources = c('original','extra')
@@ -12,19 +13,6 @@ source('1_which_data.R')
 # get non-empty and processed stats sections from 1_process_anzctr_stats_section.R
 studies = readRDS(rds_file) 
 N = nrow(studies)
-
-## key-words for sample size calculations
-# beta must be whole word to avoid running into other words (also power and alpha)
-# removed '0\\.05' as it just flagged p-value statements
-keywords = c('\\bpower\\b','sample.size','\\balpha\\b','\\bbeta\\b','type.?i','type.?ii','type.?1','type.?2','type.?one','type.?two')
-keywords = paste(keywords, collapse='|')
-# key words for more complex study designs for the sample size calculations
-complex = c('longitudinal', 'repeated.measures?', 'spatial', 'simulation', 'equivalence', 'non.?inferiority', 'cluster', 'stepped.wedge', 'intra.?class.correlation')
-complex = paste(complex, collapse='|')
-# key words for pilot study
-pilot = c('pilot', 'feasibility') # exploratory?
-pilot = paste(pilot, ' study', sep='')
-pilot = paste(pilot, collapse='|')
 
 # big loop
 update = excluded = NULL

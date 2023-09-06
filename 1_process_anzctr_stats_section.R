@@ -9,8 +9,7 @@ library(spelling)
 library(readxl)
 library(stringi)
 library(Unicode)
-source('99_functions.R')
-
+source('99_patterns.R')
 
 # Excel file from https://github.com/agbarnett/stats_section/blob/master/data/methods_dictionary.xlsx
 stat_terms_hyphen = read_xlsx('data/methods_dictionary.xlsx', sheet = 'hyphen_terms')
@@ -18,22 +17,19 @@ stat_terms_single = read_xlsx('data/methods_dictionary.xlsx', sheet = 'single_te
 stat_terms_model = read_xlsx('data/methods_dictionary.xlsx', sheet = 'models')
 other_terms = read_xlsx('data/methods_dictionary.xlsx', sheet = 'other')
 
+### section 1 - get the data and process ###
 # which data to use
 data_sources = c('original','extra')
 data_source = data_sources[2]
 source('1_which_data.R')
-
-### section 1 ###
-# get the data and process
 load(in_data) # from 0_read_data_stats_section[_extra].R
 
 # count sections as null if they are virtually empty
-null_stats = c('NA', 'N/A', '\n  ', 'Nil', 'NIl ', 'None', 'None.', 'Pending') 
+null_stats = c('NA', 'N/A', '\n', 'Nil', 'NIl', 'nil', 'none', 'None', 'None.', 'Pending') 
 
-studies = filter(studies, 
-         !str_detect(number, '^NCT')) %>% # none of these have stats section
- mutate( # binary outcome:
-  stats_section = ifelse(stats_section %in% null_stats, NA, stats_section), 
+#
+studies = mutate(studies, # binary outcome:
+  stats_section = ifelse(str_squish(stats_section) %in% null_stats, NA, stats_section), 
   missing = as.numeric(is.na(stats_section)), 
   # length outcome (number of characters):
   length = nchar(stats_section), 
@@ -47,25 +43,65 @@ studies = filter(studies,
   year = as.numeric(format(submitdate, '%Y')), 
   date = as.numeric(submitdate - as.Date('2015-01-01')) / (1*365.25)) # standardised to one year
 
+## exclude by year
 # it is clear that stats section was only available from 2013 onwards - confirmed on wayback machine that it was included then -- no earlier documentation
+excluded1 = filter(studies, year < 2013) %>%
+  select(number) %>%
+  mutate(reason = 'Pre 2013')
 studies = filter(studies, 
          year >= 2013)
-#only includes studies with a non-missing stats section
-studies = filter(studies, missing==0)
+if(nrow(excluded1)==0){excluded1 = NULL}
 
+##only include studies with a non-missing stats section
+excluded2 = filter(studies, missing != 0) %>%
+  select(number) %>%
+  mutate(reason = 'Missing stats section')
+studies = filter(studies, missing==0)
+if(nrow(excluded2)==0){excluded2 = NULL}
+#
+excluded = bind_rows(excluded1, excluded2)
+
+#
 stats_section = studies
 
 #change column headings
 stats_section = studies %>% rename('text_data' = stats_section) 
-#change to native encoding
+#change to native encoding and lower case
 stats_section = stats_section %>% mutate(text_data = enc2native(text_data))
 stats_section = stats_section %>% mutate(text_data_clean = tolower(text_data))
 
-# remove full-stop from common abbreviations that end with .
-abbreviations = c('approx','inc')
+# look for numbered lists in the text, remove because the numbers can become confused with the numbers we are interested in
+nums_pattern = paste('(^| |,)', 1:8, '(\\.|\\)|,)[^0-9]', sep='') # not ending in a number
+stats_section = mutate(stats_section, 
+                       nnum_1 = str_detect(text_data_clean, nums_pattern[1]),
+                       nnum_2 = str_detect(text_data_clean, nums_pattern[2]),
+                       nnum_3 = str_detect(text_data_clean, nums_pattern[3]),
+                       nnums = nnum_1 + nnum_2 + nnum_3)
+# split and loop through those that need editing
+stats_section_no_edit = filter(stats_section, nnums < 3)
+stats_section_edit = filter(stats_section, nnums == 3) # must have all three numbers
+#
+nums_pattern = paste(nums_pattern, collapse='|')
+for (k in 1:nrow(stats_section_edit)){
+  stats_section_edit$text_data_clean[k] = str_remove_all(stats_section_edit$text_data_clean[k], pattern = nums_pattern) # remove numbers 1 to 8
+}
+stats_section = bind_rows(stats_section_edit, stats_section_no_edit) %>%
+  select(-starts_with('nnum'))
+
+### full-stops (removed because they get confused with new sentences)
+# remove full-stop from abbreviations that end with `.` 
+abbreviations = c('approx','inc','est','cf','nb','vs','circa','ibid','id','viz','sc')
 for (a in abbreviations){
   pattern = paste(' ', a, '\\.', sep='') # word with full-stop
   replace = paste(' ', a, sep='') # keep leading space
+  stats_section = stats_section %>% 
+    mutate(text_data_clean = str_replace_all(text_data_clean, pattern = pattern, replacement = replace))
+}
+# Latin abbreviations and other abbreviations with full stops.
+latin = c('p\\. falciparum','ie\\.','i\\.e\\.','eg\\.','e\\.g\\.','n\\.b\\.')
+for (a in latin){
+  pattern = paste(' ', a, sep='') # word with full-stop
+  replace = paste(' ', str_remove(a, '\\\\.'), sep='') # keep leading space
   stats_section = stats_section %>% 
     mutate(text_data_clean = str_replace_all(text_data_clean, pattern = pattern, replacement = replace))
 }
@@ -82,9 +118,33 @@ stats_section = stats_section %>% mutate(text_data_clean = gsub("(?<=\\b\\d{2}),
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\[\\S{1,3}\\]", replacement = ""))
 stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = 'ß', replacement = 'beta')) # German eszett character 
 
-## remove references - had to loop
-### (could do more here, e.g, with DOI) # could remove any year in brackets
-# `et al` and a year within brackets
+# remove carriage tabs and tidy text due to line breaks
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\t", replacement = " "))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = "(?<= [:lower:]{1,45})- (?=[:lower:]+)", replacement = ""))
+
+## replace numbers written as words
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bzero\\b", replacement = "0"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bone\\b", replacement = "1"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\btwo\\b", replacement = "2"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bthree\\b", replacement = "3"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bfour\\b", replacement = "4"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bfive\\b", replacement = "5"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bsix\\b", replacement = "6"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bseven\\b", replacement = "7"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\beight\\b", replacement = "8"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bnine\\b", replacement = "9"))
+stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\\bten\\b", replacement = "10"))
+
+## remove objectives, aims, etc with numbers
+words = c('objectives?','aims?','hypothes(i|e)s?') # add 'groups'?
+pattern = paste(words, '.[1-9]((.| to )[1-9])?', sep='') # optional to capture things link 'aims 1-4'
+pattern = paste(pattern, collapse='|')
+stats_section = stats_section %>% 
+  mutate(text_data_clean = str_remove_all(text_data_clean, pattern=pattern))
+
+## remove references, or at least parts of them - had to loop
+# a) references in brackets
+# `et al`, doi and a year within brackets (any 2 from 3)
 for (k in 1:nrow(stats_section)){
   # pattern is all text in round/square brackets
   brackets = str_extract_all(stats_section$text_data_clean[k], pattern='\\(([^()]*)\\)|\\[([^()]*)\\]')[[1]]
@@ -101,16 +161,16 @@ for (k in 1:nrow(stats_section)){
     }
   }
 }
-
-
-## turned this off - March 2022
-#remove () including text within brackets "\\s*\\([^\\)]+\\)"
-#option to keep text inside brackets is "[()]"
-#stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, "[()]", " ")) # AGB, changed replace to space
-
-# remove carriage tabs and tidy text due to line breaks
-stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(text_data_clean, pattern="\t", replacement = " "))
-stats_section = stats_section %>% mutate(text_data_clean = str_replace_all(string = text_data_clean, pattern = "(?<= [:lower:]{1,45})- (?=[:lower:]+)", replacement = ""))
+# b) citations of style `Newman, D. A. (2014)`
+pattern = paste('\\w+,? [a-z]\\.?(.?[a-z]\\.)? \\(', years, '\\)', sep='')
+# str_extract(tolower('Newman, D. A. (2014)'), pattern) # test
+stats_section = stats_section %>% mutate(text_data_clean = str_remove_all(text_data_clean, pattern=pattern))
+# c) removing year, volume, pages, e.g., `60(12), 1234–1238`
+pattern = '[0-9][0-9]?[0-9]?\\([0-9][0-9]?[0-9]?\\),? ?[0-9][0-9]?[0-9]?[0-9]?.[0-9][0-9]?[0-9]?[0-9]?'
+stats_section = stats_section %>% mutate(text_data_clean = str_remove_all(text_data_clean, pattern=pattern))
+# d) years alone in round brackets
+pattern = paste('\\(', years, '\\)', sep='') # any years in round brackets
+stats_section = stats_section %>% mutate(text_data_clean = str_remove_all(text_data_clean, pattern=pattern))
 
 # 2. replace/standardise common symbols
 #standardise dashes 
@@ -311,6 +371,5 @@ sample_data = stats_section %>% filter(number %in% sample_studies[['number']])
 # drop data no longer needed
 stats_section = select(stats_section, -missing, -year, -date, -l_length, -length)
 
-# save
-write_rds(stats_section, file = rds_file, compress = "xz", compression = 9L)
-
+## save
+save(stats_section, excluded, file = rds_file)

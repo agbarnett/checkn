@@ -1,36 +1,30 @@
- has sample size 383945
+ has sample size 383945 and is wrong! 	`The estimated sample size for the main outcome measures of physical performance was based on an assumed correlation of 0.7 between the pre- and post-intervention outcome measures, and an effect size of Cohen’s d=1.2 for gait speed based on a recent study that examined the effects of a multi-strain probiotic on gait speed and the Timed Up and Go test. In order to have power of 80% and a significance level of 5%, our study anticipates an estimated sample size of 37 per group, taking into account a conservative ~30% dropout rate.`
  
- # refinement, remove years?
- 
- 384002 
- includes cut-off for 
- also has per group sample size, so need to double n
- 
- 384753 is complex as it is AUC, but what word can be used to flag complex?
- 
- 383490
- 'to detect an MCID of 9.3 points'
- need to add mcid and `minimal clinically important difference`; done, not working
+ 384002 good test case to flag as proportions rather than difference in means. Did not gave baseline proportion, only gave difference, so assumed 0.5 as the most variable. 
  
  383554
  good one to check for calculation
- 
- 384658 
- uses a numbered list, can we remove numbers? Look for lots of sentences that start with numbers. 
- 
- #
- need to think about '[0-9] per group'
-
-#
-calculate the number of groups 
- 
+  
  ## refinements to text processing
-# need to think about `x`, e.g., "10 x 4 sites pre phase" 
-# remove year in brackets from citations, try to remove all of citations? , e.g., `Newman, D. A. (2014)` and `Journal of Clinical Epidemiology, 60(12), 1234–1238` also `DOI`
+# need to think about `x`? e.g., "10 x 4 sites pre phase" 
 
-# strip out `objectives 1-4`?
 
-# for pilot: `inform the sample size required` and similar
+"in relation to treatment fidelity of pilot trials, the sample size required for analysis given 90% power and one-sided 5% alpha of around n = 26-34 in intervention group alone will be significant indicating acceptable fidelity."
 
-# fix this, 384730
-'standard deviation of the measurement is approx. 20.30' 
+`children` no good:
+"at pch 17000 children undergo surgery annually. allowing for those that go to icu after surgery we expect to collect data of at least 2000 children over the 8 weeks"
+
+# need to check ?<= and ?= with or without following space, spit some examples to screen?
+
+# create some test texts to process
+
+# 383959 good example, needs lots of work!
+
+# should add precision studies, trial_id = 384105
+'The treatment failure rate to artesunate+sulfadoxine/pyrimethamine (AS+SP) and chloroquine (CQ) in the study areas was assumed at 5%. At a confidence level of 95% and a precision around the estimate of 10%, a minimum of 50 patients per site per drug were targeted. '
+
+
+# need to add dates to each row of the sample data, not so useful for now, but will be when running the trial
+
+## Analysis ideas:
+- could plot study sizes for pilot studies? Show difference between pilot and main study. Also validates that pilot study flag is working

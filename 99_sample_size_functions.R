@@ -13,10 +13,10 @@ adjustments <- function(n,
                         correction_pct = 0) {
   
   #misc correction
-  n = n*(1 + correction_pct/100)
+  n = n*(1 + (correction_pct/100))
   
   #compliance
-  n = n/(1-exp_dropout_pct/100-exp_dropin_pct/100)^2
+  n = n/(1-(exp_dropout_pct/100)-(exp_dropin_pct/100))^2
   
   #unequal sized groups
   #q1 and q2 are the propn of participants in each grp, so that nq1 and nq2 are the number of participants allocated to each grp
@@ -24,7 +24,7 @@ adjustments <- function(n,
   
   #loss to follow up
   #*do this last after all other adjustments*
-  n = n/(1-exp_loss_followup_pct/100)
+  n = n/(1-(exp_loss_followup_pct/100))
   
   return(n)
   
@@ -52,6 +52,7 @@ n_diffmeans <- function(expect_diff = NA,
                         exp_loss_followup_pct = 0, 
                         exp_dropout_pct = 0, 
                         exp_dropin_pct = 0, 
+                        n_groups = 2, # added by AGB, number of groups/arms
                         unequal_groups = FALSE, 
                         unequal_q1 = 0.5, 
                         unequal_q2 = 0.5, 
@@ -66,7 +67,7 @@ n_diffmeans <- function(expect_diff = NA,
   if (is.na(expect_diff)|is.na(sd_diff)) stop("Both expect_diff and sd_diff are required.")
   if ((cluster_rand == TRUE)&(is.na(m)|is.na(icc))) stop("For a cluster-randomised trial, m (cluster size) and icc (intracluster correlation coefficient) are required.")
   
-  #sample size
+  #sample size per group
   Zalpha = qnorm(1-alpha/numsides)
   Zbeta = qnorm(1-beta)
   n = 2*((sd_diff^2)/(expect_diff^2))*(Zalpha+Zbeta)^2 
@@ -85,6 +86,9 @@ n_diffmeans <- function(expect_diff = NA,
   
   #adjustments
   n = adjustments(n = n, exp_loss_followup_pct = exp_loss_followup_pct, exp_dropout_pct = exp_dropout_pct, exp_dropin_pct = exp_dropin_pct, unequal_groups = unequal_groups, unequal_q1 = unequal_q1, unequal_q2 = unequal_q2, correction_pct = correction_pct)
+  
+  # total sample size (n multiplied by groups)
+  n = n * n_groups
   
   return(ceiling(n))
   
