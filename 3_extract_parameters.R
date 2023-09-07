@@ -1,5 +1,5 @@
 # 3_extract_parameters.R
-# extract parameters required from stats methods sections text for calculating sample size
+# extract parameters from stats methods sections text that are required for calculating sample size
 # September 2023
 library(dplyr)
 library(stringr)
@@ -264,7 +264,7 @@ for (k in 1:N){
   phrases = keywords,
   keywords = keywords,
   phrases_position = phrases_position,
-  breaking_words = c(significance, '\\balpha\\b', type_1, '\\bpower\\b', '\\bbeta\\b', type_2, 'confidence', ' and ', ' with ', 'that', 'which'),
+  breaking_words = c(significance, '\\balpha\\b', type_1, '\\bpower\\b', '\\bbeta\\b', type_2, 'confidence' , '\\band\\b', '\\bwith\\b', '\\bthat\\b', '\\bwhich\\b'),
   number_integer_general = TRUE, number_integer_percent = FALSE, 
   number_decimal_general = FALSE, number_decimal_percent = FALSE, 
   number_type = "positive", number_likely_limits = c(1, 10))
@@ -296,7 +296,7 @@ for (k in 1:N){
  phrases = phrases,
  keywords = keywords,
  phrases_position = phrases_position,
- breaking_words = c(significance, '\\balpha\\b', type_1, '\\bpower\\b', '\\bbeta\\b', type_2, 'confidence', ' and ', ' with ', 'that', 'which'),
+ breaking_words = c(significance, '\\balpha\\b', type_1, '\\bpower\\b', '\\bbeta\\b', type_2, 'confidence'),
  number_integer_general = TRUE, number_integer_percent = FALSE, 
  number_decimal_general = FALSE, number_decimal_percent = FALSE, 
  number_type = "positive", number_likely_limits = c(NA, NA))
@@ -329,7 +329,7 @@ for (k in 1:N){
  phrases = phrases,
  keywords = keywords,
  phrases_position = phrases_position,
- breaking_words = c(significance, '\\balpha\\b', type_1, 'confidence', ' and ', ' with ', 'that', 'which'),
+ breaking_words = c(significance, '\\balpha\\b', type_1, 'confidence', '\\band\\b', '\\bwith\\b', '\\bthat\\b', '\\bwhich\\b'),
  number_integer_general = FALSE, number_integer_percent = TRUE, 
  number_decimal_general = TRUE, number_decimal_percent = TRUE, 
  number_type = "probability", number_likely_limits = c(0.5, 1))
@@ -346,7 +346,7 @@ for (k in 1:N){
  phrases = phrases, 
  keywords = keywords,
  phrases_position = phrases_position, 
- breaking_words = c(significance, '\\balpha\\b', type_1, 'confidence', ' and ', ' with ', 'that', 'which'), 
+ breaking_words = c(significance, '\\balpha\\b', type_1, 'confidence', '\\band\\b', '\\bwith\\b', '\\bthat\\b', '\\bwhich\\b'), 
  number_integer_general = FALSE, number_integer_percent = TRUE, 
  number_decimal_general = TRUE, number_decimal_percent = TRUE, 
  number_type = "probability", number_likely_limits = c(0, 0.5))
@@ -370,7 +370,7 @@ for (k in 1:N){
  phrases = phrases, 
  keywords = keywords, 
  phrases_position = phrases_position, 
- breaking_words = c('\\bpower\\b', '\\bbeta\\b', type_2, ' and ', ' with ', 'that', 'which',
+ breaking_words = c('\\bpower\\b', '\\bbeta\\b', type_2 , '\\band\\b', '\\bwith\\b', '\\bthat\\b', '\\bwhich\\b',
       '\\bmean\\b', 'standard deviation', '\\bsd\\b', 'coefficient', 'regression', '\\bdetect'), 
  number_integer_general = FALSE, number_integer_percent = TRUE, 
  number_decimal_general = TRUE, number_decimal_percent = TRUE, 

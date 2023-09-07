@@ -11,6 +11,7 @@
 
 "in relation to treatment fidelity of pilot trials, the sample size required for analysis given 90% power and one-sided 5% alpha of around n = 26-34 in intervention group alone will be significant indicating acceptable fidelity."
 
+# need to think about this, general statements about available numbers
 `children` no good:
 "at pch 17000 children undergo surgery annually. allowing for those that go to icu after surgery we expect to collect data of at least 2000 children over the 8 weeks"
 
